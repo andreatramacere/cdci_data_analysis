@@ -39,6 +39,8 @@ import logging
 import socket
 import logstash
 
+import oda_api
+
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
@@ -629,6 +631,32 @@ class InstrumentQueryBackEnd(object):
 
         if 'api' in self.par_dic.keys():
             api=True
+            curent_disp_oda_api_version = oda_api.__vesrion__
+            query_oda_api_version=None
+            if 'oda_api_version' in  self.par_dic.keys():
+                query_oda_api_version=self.par_dic['oda_api_version']
+
+            oda_api_version_error=None
+            failed_task = 'oda_api version compatibility'
+            if query_oda_api_version is None:
+                oda_api_version_error = 'oda_api version not compatible, current version=%s, update your oda_api package' % curent_disp_oda_api_version
+
+
+            if curent_disp_oda_api_version>query_oda_api_version:
+                oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, curent_disp_oda_api_version)
+
+            if oda_api_version_error is not None:
+                query_status='failed'
+                query_out = QueryOutput()
+                query_out.set_failed(failed_task,message=oda_api_version_error, job_status='failed')
+
+                resp = self.build_dispatcher_response(query_new_status=query_status,
+                                                      query_out=query_out,
+                                                      job_monitor=None,
+                                                      off_line=off_line,
+                                                      api=api)
+                return resp
+
         else:
             api=False
 
@@ -712,6 +740,11 @@ class InstrumentQueryBackEnd(object):
         if alias_workidr is not None and run_asynch==True:
             job_is_aliased = True
 
+        #Todo resumbit on too long wating time
+        #remove sctrach dir
+        #self.set_scratch_dir(self.par_dic['session_id'], job_id=self.job_id, verbose=verbose)
+        #stet status to new
+
         print ('--> job aliased',job_is_aliased)
         job=job_factory(self.instrument_name,
                         self.scratch_dir,
@@ -733,9 +766,6 @@ class InstrumentQueryBackEnd(object):
         query_out=None
 
 
-
-        # TODO if query status== ready but you get delegation
-        # TODO set query status to new and ignore alias
 
 
 
@@ -891,7 +921,6 @@ class InstrumentQueryBackEnd(object):
 
 
         elif query_status=='failed':
-            #TODO: here we should resubmit query to get exception from ddosa
             query_out = QueryOutput()
             query_out.set_failed('submitted job',job_status=job_monitor['status'])
 
