@@ -644,7 +644,7 @@ class InstrumentQueryBackEnd(object):
                 oda_api_version_error = 'oda_api version not compatible, current version=%s, update your oda_api package' % curent_disp_oda_api_version
 
 
-            if curent_disp_oda_api_version>query_oda_api_version:
+            elif curent_disp_oda_api_version>query_oda_api_version:
                 oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, curent_disp_oda_api_version)
 
             if oda_api_version_error is not None:
