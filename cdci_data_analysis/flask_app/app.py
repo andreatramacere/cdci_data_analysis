@@ -630,37 +630,45 @@ class InstrumentQueryBackEnd(object):
         print ('==============================> run query <==============================')
 
         if 'api' in self.par_dic.keys():
-            api=True
-            curent_disp_oda_api_version=None
-            if hasattr(oda_api,'__version__'):
-                curent_disp_oda_api_version = oda_api.__version__
-            query_oda_api_version=None
-            if 'oda_api_version' in  self.par_dic.keys():
-                query_oda_api_version=self.par_dic['oda_api_version']
+            api = True
+            current_disp_oda_api_version = None
+            if hasattr(oda_api, '__version__'):
+                current_disp_oda_api_version = oda_api.__version__
+            query_oda_api_version = None
+            if 'oda_api_version' in self.par_dic.keys():
+                query_oda_api_version = self.par_dic['oda_api_version']
 
-            oda_api_version_error=None
+            oda_api_version_error = None
             failed_task = 'oda_api version compatibility'
-            if query_oda_api_version is None or curent_disp_oda_api_version is None:
-                oda_api_version_error = 'oda_api version not compatible, current version=%s, update your oda_api package' % curent_disp_oda_api_version
 
+            if query_oda_api_version is None:
+                oda_api_version_error = 'oda_api version compatibility non safe, please update your oda_api package'
+            elif current_disp_oda_api_version is None:
+                oda_api_version_error = 'oda_api on server are outdated please contact oda api responsible'
+            elif current_disp_oda_api_version > query_oda_api_version:
 
-            elif curent_disp_oda_api_version>query_oda_api_version:
-                oda_api_version_error = 'oda_api version not compatible, min=%s, current=%s' % (_min_v, curent_disp_oda_api_version)
+                oda_api_version_error = 'oda_api version not compatible, min version=%s, oda api query version=%s, please update your oda_api package' % (
+                current_disp_oda_api_version, query_oda_api_version)
+            else:
+                pass
 
             if oda_api_version_error is not None:
-                query_status='failed'
+                job = job_factory(self.instrument_name, self.scratch_dir, self.get_current_ip(), None, self.par_dic['session_id'], self.job_id, self.par_dic,
+                                  aliased=False)
+
+                job.set_failed()
+
+                job_monitor = job.monitor
+                query_status = 'failed'
+
                 query_out = QueryOutput()
-                query_out.set_failed(failed_task,message=oda_api_version_error, job_status='failed')
 
-                resp = self.build_dispatcher_response(query_new_status=query_status,
-                                                      query_out=query_out,
-                                                      job_monitor=None,
-                                                      off_line=off_line,
-                                                      api=api)
+                query_out.set_failed(failed_task, message=oda_api_version_error, job_status=job_monitor['status'])
+
+                resp = self.build_dispatcher_response(query_new_status=query_status, query_out=query_out, job_monitor=job_monitor, off_line=off_line, api=api)
                 return resp
-
         else:
-            api=False
+            api = False
 
         try:
             query_type = self.par_dic['query_type']
