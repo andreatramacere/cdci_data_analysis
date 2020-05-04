@@ -652,7 +652,7 @@ class InstrumentQueryBackEnd(object):
             else:
                 pass
 
-            if oda_api_version_error is not None:
+            if  oda_api_version_error is not None:
                 job = job_factory(self.instrument_name, self.scratch_dir, self.get_current_ip(), None, self.par_dic['session_id'], self.job_id, self.par_dic,
                                   aliased=False)
 
