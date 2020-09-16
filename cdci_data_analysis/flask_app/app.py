@@ -1071,6 +1071,7 @@ def run_analysis():
 
         payload['cdci_data_analysis_version']=__version__
         payload['oda_api_version'] = oda_api.__version__
+        payload['error_message'] = e
         #_l = []
         ##for instrument_factory in importer.instrument_facotry_list:
          #   _l.append(instrument_factory().name)
