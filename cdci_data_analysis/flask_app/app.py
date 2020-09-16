@@ -40,7 +40,7 @@ import socket
 import logstash
 
 import oda_api
-
+from cdci_data_analysis import  __version__
 #UPLOAD_FOLDER = '/path/to/the/uploads'
 #ALLOWED_EXTENSIONS = set(['txt', 'fits', 'fits.gz'])
 
@@ -973,6 +973,27 @@ class InstrumentQueryBackEnd(object):
 
 
 
+class InvalidUsage(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
 
 @app.route("/api/meta-data")
 def run_api_meta_data():
@@ -1042,9 +1063,19 @@ def run_analysis_test():
 
 @app.route('/run_analysis', methods=['POST', 'GET'])
 def run_analysis():
-    query=InstrumentQueryBackEnd()
-    return query.run_query(disp_conf=app.config['conf'])
+    try:
+        query=InstrumentQueryBackEnd()
+        return query.run_query(disp_conf=app.config['conf'])
+    except Exception as e:
+        payload={}
 
+        payload['cdci_data_analysis_version']=__version__
+        payload['oda_api_version'] = oda_api.__version__
+        _l = []
+        for instrument_factory in importer.instrument_facotry_list:
+            _l.append(instrument_factory().name)
+        payload['instrument_list'] =  _l
+        raise InvalidUsage('request not valid', status_code=410,payload=payload)
 
 
 @app.route('/test_mock', methods=['POST', 'GET'])
